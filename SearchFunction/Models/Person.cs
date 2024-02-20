@@ -19,5 +19,6 @@ namespace SearchFunction.Models
         public DateTime DateOfBirth { get; set; }
 
         public virtual ICollection<FamilyRelation>  FamilyRelations { get; set; }
+        public virtual ICollection<FamilyRelation> RelatedFamilyRelations { get; set; }
     }
 }

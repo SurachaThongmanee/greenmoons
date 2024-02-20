@@ -1,36 +1,47 @@
-﻿using SearchFunction.Models;
-
+﻿using Microsoft.EntityFrameworkCore;
+using SearchFunction.Models;
+using Microsoft.EntityFrameworkCore.SqlServer;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 Console.WriteLine("Hello, World!");
 
 
-List<Relationship> relationship = new List<Relationship>
+List<Relationship> relationships = new List<Relationship>
         {
-            new Relationship {Id = 1, Name = "Grand Father" },
-            new Relationship {Id = 2,Name = "Son" },
-            new Relationship {Id = 3, Name = "Daughter" }
+            new Relationship { Name = "Grand Father" },
+            new Relationship {Name = "Son" },
+            new Relationship { Name = "Daughter" }
         };
 List<Person> families = new List<Person>() {
-    new Person  {Id = 1, Name = "Lee", DateOfBirth = new DateTime(1890, 5, 7) },
-     new Person {Id = 2, Name = "Robert", DateOfBirth = new DateTime(1920, 7, 10)},
-     new Person {Id = 3, Name = "Kris", DateOfBirth = new DateTime(1944, 12, 26)}
+    new Person  { Name = "Lee", DateOfBirth = new DateTime(1890, 5, 7) },
+     new Person { Name = "Robert", DateOfBirth = new DateTime(1920, 7, 10)},
+     new Person { Name = "Kris", DateOfBirth = new DateTime(1944, 12, 26)}
 };
-List<FamilyRelation> familyRelations = new List<FamilyRelation>() { 
-    new FamilyRelation { Id = 1 , PersonId = 1 ,  RelatedPersonId =  2 ,RelationshipTypeId = 2},
-    new FamilyRelation { Id = 2 , PersonId = 1 ,  RelatedPersonId =  3 ,RelationshipTypeId = 3}
+List<FamilyRelation> familyRelations = new List<FamilyRelation>() {
+    new FamilyRelation {  PersonId = 1 ,  RelatedPersonId =  2 ,RelationshipTypeId = 2},
+    new FamilyRelation {  PersonId = 1 ,  RelatedPersonId =  3 ,RelationshipTypeId = 3}
 };
 
+# region Add Data to DB
+//using (var dbContext = new MyDbContext())
+//{
+//    PopulateDatabase(dbContext);
+//}
+#endregion
 
 string name = Console.ReadLine();
 SearchOlderToYounger(name);
 SearchYoungerToOlder(name);
 void SearchOlderToYounger(string name)
 {
-    var person = families.FirstOrDefault(p => p.Name == name);
-    if (person != null)
+    using (var dbContext = new MyDbContext())
     {
-        var relatives = familyRelations.Where(fr => fr.PersonId == person.Id)
-            .OrderBy(fr => families.First(p => p.Id == fr.RelatedPersonId).DateOfBirth)
-            .Select(fr => families.First(p => p.Id == fr.RelatedPersonId).Name)
+        var relatives = dbContext.FamilyRelations.Where(fr => fr.Person.Name == name)
+            .OrderBy(fr => fr.RelatedPerson.DateOfBirth)
+            .Select(fr => fr.RelatedPerson.Name)
             .ToList();
 
         if (relatives.Any())
@@ -42,19 +53,14 @@ void SearchOlderToYounger(string name)
             Console.WriteLine("Result: Not Found");
         }
     }
-    else
-    {
-        Console.WriteLine("Result: Not Found");
-    }
 }
 void SearchYoungerToOlder(string name)
 {
-    var person = families.FirstOrDefault(p => p.Name == name);
-    if (person != null)
+    using (var dbContext = new MyDbContext())
     {
-        var relatives = familyRelations.Where(fr => fr.PersonId == person.Id)
-            .OrderByDescending(fr => families.First(fam => fam.Id == fr.RelatedPersonId).DateOfBirth)
-            .Select(fr => families.First(fam => fam.Id == fr.RelatedPersonId).Name)
+        var relatives = dbContext.FamilyRelations.Where(fr => fr.Person.Name == name)
+            .OrderByDescending(fr => fr.RelatedPerson.DateOfBirth)
+            .Select(fr => fr.RelatedPerson.Name)
             .ToList();
 
         if (relatives.Any())
@@ -66,8 +72,54 @@ void SearchYoungerToOlder(string name)
             Console.WriteLine("Result: Not Found");
         }
     }
-    else
+}
+void PopulateDatabase(MyDbContext dbContext)
+{
+    try
     {
-        Console.WriteLine("Result: Not Found");
+        dbContext.Relationships.AddRange(relationships);
+        dbContext.Person.AddRange(families);
+        dbContext.FamilyRelations.AddRange(familyRelations);
+        dbContext.SaveChanges();
+    }
+    catch (DbUpdateException ex)
+    {
+        Console.WriteLine("Error while saving changes to the database:");
+        Console.WriteLine(ex.InnerException.Message);
     }
 }
+public class MyDbContext : DbContext
+{
+    public DbSet<Person> Person { get; set; }
+    public DbSet<Relationship> Relationships { get; set; }
+    public DbSet<FamilyRelation> FamilyRelations { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        #region Connection String
+        optionsBuilder.UseSqlServer("Server=DESKTOP-886VTLI;Database=dev;Trusted_Connection=True;MultipleActiveResultSets=True;Encrypt=True;TrustServerCertificate=True;");
+        #endregion
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<FamilyRelation>()
+            .HasOne(fr => fr.Person)
+            .WithMany()
+            .HasForeignKey(fr => fr.PersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FamilyRelation>()
+            .HasOne(fr => fr.RelatedPerson)
+            .WithMany()
+            .HasForeignKey(fr => fr.RelatedPersonId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FamilyRelation>()
+            .HasOne(fr => fr.RelationshipType)
+            .WithMany(r => r.FamilyRelations)
+            .HasForeignKey(fr => fr.RelationshipTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
