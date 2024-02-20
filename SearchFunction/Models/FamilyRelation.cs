@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SearchFunction.Models
 {
@@ -24,11 +19,11 @@ namespace SearchFunction.Models
 
 
         [ForeignKey("PersonId")]
-        [InverseProperty("FamilyRelations")] 
+        [InverseProperty("FamilyRelations")]
         public virtual Person Person { get; set; }
 
         [ForeignKey("RelatedPersonId")]
-        [InverseProperty("RelatedFamilyRelations")] 
+        [InverseProperty("RelatedFamilyRelations")]
         public virtual Person RelatedPerson { get; set; }
 
         [ForeignKey("RelationshipTypeId")]

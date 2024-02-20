@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SearchFunction.Models
 {
@@ -18,7 +11,7 @@ namespace SearchFunction.Models
         [Required]
         public DateTime DateOfBirth { get; set; }
 
-        public virtual ICollection<FamilyRelation>  FamilyRelations { get; set; }
+        public virtual ICollection<FamilyRelation> FamilyRelations { get; set; }
         public virtual ICollection<FamilyRelation> RelatedFamilyRelations { get; set; }
     }
 }
